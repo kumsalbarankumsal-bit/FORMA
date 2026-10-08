@@ -2,9 +2,12 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { depoKur, depo } from "./storage.js";
 import App from "./App.jsx";
+import SenkronDugme from "./SenkronDugme.jsx";
+import { kancaKur, acilis, izle } from "./senkron.js";
 
 const KEY = "forma:td:v3";
 depoKur();
+kancaKur();
 
 /* Bu sitede hiç kayıt yoksa: claude.ai sürümünden alınan yedeği taşımayı öner.
    Yedek dosyası "Kulüp → Veri → Yedeği indir" ile alınır (baran-calisma-yedek-*.json). */
@@ -39,12 +42,12 @@ function Tasima({ bitti }) {
 }
 function Kok() {
   const [durum, setDurum] = useState("bak");
-  React.useEffect(() => { depo.get(KEY).then((r) => {
+  React.useEffect(() => { acilis().catch(() => {}).then(() => depo.get(KEY)).then((r) => { izle();
     /* kayıt yoksa ya da henüz hiç antrenman girilmemiş boş bir kayıtsa taşıma ekranı; ?tasi ile her zaman açılır */
     let dolu = false; try { const v = r && JSON.parse(r.value); dolu = !!(v && Object.keys(v.antrenman || {}).length); } catch (e) {}
     setDurum(dolu && !/[?&]tasi\b/.test(location.search) ? "uygulama" : "tasima"); }).catch(() => setDurum("uygulama")); }, []);
   if (durum === "bak") return null;
-  return durum === "tasima" ? <Tasima bitti={() => setDurum("uygulama")} /> : <App />;
+  return <>{durum === "tasima" ? <Tasima bitti={() => setDurum("uygulama")} /> : <App />}<SenkronDugme /></>;
 }
 createRoot(document.getElementById("root")).render(<Kok />);
 if ("serviceWorker" in navigator && location.protocol === "https:") window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
