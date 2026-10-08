@@ -3,7 +3,7 @@ import { durum, kodAl, kodYaz, gonder, cek, hesapAnahtari, uzakT } from "./senkr
 
 /* sağ altta küçük bulut düğmesi: eşitleme durumu, kod oluşturma/girme, e-postayla kod gönderme */
 export default function SenkronDugme() {
-  const [d, setD] = useState({ ...durum }); const [acik, setAcik] = useState(() => !kodAl() && !localStorage.getItem("forma:girisSoruldu")); const [ep, setEp] = useState(""); const [sf, setSf] = useState(""); const [bekle, setBekle] = useState(false); const [hata, setHata] = useState(""); const [kod, setKod] = useState(kodAl());
+  const [d, setD] = useState({ ...durum }); const [acik, setAcik] = useState(false); const [ep, setEp] = useState(""); const [sf, setSf] = useState(""); const [bekle, setBekle] = useState(false); const [hata, setHata] = useState(""); const [kod, setKod] = useState(kodAl());
   useEffect(() => { const f = (x) => setD(x); durum.dinle.add(f); return () => durum.dinle.delete(f); }, []);
   const renk = { tamam: "#39E58C", gonderiyor: "#FFCB52", hata: "#FF5D6C", cakisma: "#FF9A3C", kapali: "#6E7591" }[d.ad] || "#6E7591";
   const yaz = { tamam: d.zaman ? `Eşitlendi · ${new Date(d.zaman).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}` : "Eşitlendi", gonderiyor: "Gönderiliyor…", hata: "Bağlantı yok, sonra denenecek", cakisma: "Diğer cihazda daha yeni kayıt var", kapali: "Eşitleme kapalı" }[d.ad];

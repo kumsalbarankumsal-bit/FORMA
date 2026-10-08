@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { depoKur, depo } from "./storage.js";
 import App from "./App.jsx";
 import SenkronDugme from "./SenkronDugme.jsx";
-import { kancaKur, acilis, izle } from "./senkron.js";
+import { kancaKur, acilis, izle, kodAl, kodYaz, hesapAnahtari, uzakT, cek, gonder } from "./senkron.js";
 
 const KEY = "forma:td:v3";
 depoKur();
@@ -40,13 +40,45 @@ function Tasima({ bitti }) {
       <button type="button" onClick={bitti} style={{ ...S.btn, minHeight: 36, padding: 0, marginTop: 18, background: "transparent", color: "#6E7591", fontWeight: 600, fontSize: 13 }}>Yedeğim yok, sıfırdan başla</button>
     </div></div>;
 }
+/* Hesap: kayıt ol ya da giriş yap. Aynı e-posta + şifre her cihazda aynı kaydı açar. */
+function Hesap({ bitti }) {
+  const [kip, setKip] = useState("kayit"); const [ep, setEp] = useState(""); const [sf, setSf] = useState(""); const [sf2, setSf2] = useState(""); const [hata, setHata] = useState(""); const [bekle, setBekle] = useState(false);
+  const gecerli = ep.includes("@") && sf.length >= 6 && (kip === "giris" || sf === sf2);
+  const gonderForm = async () => { if (!gecerli || bekle) return; setBekle(true); setHata("");
+    try { const k = await hesapAnahtari(ep, sf); kodYaz(k); const t = await uzakT();
+      if (kip === "kayit" && t > 0) { kodYaz(null); setHata("Bu e-postayla zaten bir hesap var. Giriş yap'ı seç."); setKip("giris"); }
+      else if (kip === "giris" && !t) { kodYaz(null); setHata("Bu e-posta ve şifreyle hesap bulunamadı. Şifreni kontrol et ya da Kayıt ol'u seç."); }
+      else { localStorage.setItem("forma:hesap", ep.trim().toLowerCase()); localStorage.removeItem("forma:senkronT");
+        if (t > 0) { await cek(); bitti("uygulama"); } else { await gonder(true); bitti("devam"); } }
+    } catch (e) { kodYaz(null); setHata(e.kod === 503 ? "Bulut deposu henüz bağlı değil (Vercel → Storage → Upstash Redis)." : "Bağlanılamadı. İnternetini kontrol edip yeniden dene."); }
+    setBekle(false); };
+  const G = { display: "block", width: "100%", boxSizing: "border-box", marginTop: 10, borderRadius: 12, border: "none", padding: "0 14px", minHeight: 48, background: "rgba(255,255,255,.06)", color: "#fff", font: "15px system-ui" };
+  const sekme = (id, ad) => <button type="button" onClick={() => { setKip(id); setHata(""); }} style={{ flex: 1, minHeight: 42, border: "none", borderRadius: 11, cursor: "pointer", font: "800 14px system-ui", background: kip === id ? "#D7FF3A" : "transparent", color: kip === id ? "#0B0D10" : "#A9B0C6" }}>{ad}</button>;
+  return <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", background: "radial-gradient(90% 70% at 50% 0%, rgba(215,255,58,.12), transparent 60%), #05060B" }}>
+    <form onSubmit={(e) => { e.preventDefault(); gonderForm(); }} style={{ width: "min(440px, calc(100vw - 32px))", padding: 28, borderRadius: 24, background: "linear-gradient(180deg,#141829,#0A0C16)", boxShadow: "0 30px 80px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.08)", color: "#F4F6FB", font: "15px/1.5 system-ui, sans-serif" }}>
+      <div style={{ font: "800 11px system-ui", letterSpacing: ".2em", color: "#D7FF3A" }}>FORMA · ARENA 3.0</div>
+      <div style={{ font: "900 30px system-ui", lineHeight: 1.05, margin: "8px 0 6px" }}>{kip === "kayit" ? "Hesap oluştur" : "Tekrar hoş geldin"}</div>
+      <div style={{ color: "#A9B0C6", fontSize: 14 }}>Tablet, laptop, telefon: her cihazda aynı hesapla gir, çalışmaların ve ödüllerin kendiliğinden taşınsın.</div>
+      <div style={{ display: "flex", gap: 4, padding: 4, borderRadius: 14, background: "rgba(255,255,255,.05)", marginTop: 16 }}>{sekme("kayit", "Kayıt ol")}{sekme("giris", "Giriş yap")}</div>
+      <input type="email" value={ep} onChange={(e) => setEp(e.target.value)} placeholder="E-posta" autoComplete="email" style={G} />
+      <input type="password" value={sf} onChange={(e) => setSf(e.target.value)} placeholder="Şifre (en az 6 karakter)" autoComplete={kip === "kayit" ? "new-password" : "current-password"} style={G} />
+      {kip === "kayit" && <input type="password" value={sf2} onChange={(e) => setSf2(e.target.value)} placeholder="Şifre tekrar" autoComplete="new-password" style={G} />}
+      {kip === "kayit" && sf2 && sf !== sf2 && <div style={{ color: "#FF8A95", fontSize: 13, marginTop: 6 }}>Şifreler aynı değil.</div>}
+      {hata && <div style={{ color: "#FF8A95", fontSize: 13.5, marginTop: 10 }}>{hata}</div>}
+      <button type="submit" disabled={!gecerli || bekle} style={{ width: "100%", minHeight: 50, marginTop: 14, border: "none", borderRadius: 14, cursor: "pointer", font: "900 16px system-ui", background: "#D7FF3A", color: "#0B0D10", opacity: !gecerli || bekle ? 0.5 : 1 }}>{bekle ? "Bağlanıyor…" : kip === "kayit" ? "Kayıt ol" : "Giriş yap"}</button>
+      {kip === "kayit" && <div style={{ color: "#6E7591", fontSize: 12, marginTop: 10 }}>Şifre sıfırlama yok: şifreni bir yere not et.</div>}
+      <button type="button" onClick={() => { localStorage.setItem("forma:hesapAtla", "1"); bitti("devam"); }} style={{ display: "block", margin: "14px auto 0", border: "none", background: "transparent", color: "#6E7591", font: "600 13px system-ui", cursor: "pointer" }}>Hesapsız devam et</button>
+    </form></div>;
+}
 function Kok() {
   const [durum, setDurum] = useState("bak");
-  React.useEffect(() => { acilis().catch(() => {}).then(() => depo.get(KEY)).then((r) => { izle();
+  const yukle = () => acilis().catch(() => {}).then(() => depo.get(KEY)).then((r) => { izle();
     /* kayıt yoksa ya da henüz hiç antrenman girilmemiş boş bir kayıtsa taşıma ekranı; ?tasi ile her zaman açılır */
     let dolu = false; try { const v = r && JSON.parse(r.value); dolu = !!(v && Object.keys(v.antrenman || {}).length); } catch (e) {}
-    setDurum(dolu && !/[?&]tasi\b/.test(location.search) ? "uygulama" : "tasima"); }).catch(() => setDurum("uygulama")); }, []);
+    setDurum(dolu && !/[?&]tasi\b/.test(location.search) ? "uygulama" : "tasima"); });
+  React.useEffect(() => { if (!kodAl() && !localStorage.getItem("forma:hesapAtla")) setDurum("hesap"); else yukle().catch(() => setDurum("uygulama")); }, []);
   if (durum === "bak") return null;
+  if (durum === "hesap") return <Hesap bitti={(x) => (x === "uygulama" ? setDurum("uygulama") : yukle())} />;
   return <>{durum === "tasima" ? <Tasima bitti={() => setDurum("uygulama")} /> : <App />}<SenkronDugme /></>;
 }
 createRoot(document.getElementById("root")).render(<Kok />);
