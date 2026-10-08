@@ -9,4 +9,4 @@ Baran Şimşek'in IB DP2 (Kasım 2027) ve YKS 2028 çalışma uygulaması: Konu 
 Yerelde: `npm install && npm run dev`.
 
 ## Cihazlar arası eşitleme
-Vercel → proje → Storage → **Upstash Redis** (ücretsiz) oluşturup projeye bağla; `KV_REST_API_URL` ve `KV_REST_API_TOKEN` kendiliğinden eklenir, sonra yeniden yayınla. Uygulamada sağ alttaki bulut düğmesi: ilk cihazda "Yeni kod oluştur", diğerinde aynı kodu gir.
+Vercel → proje → Storage → **Upstash Redis** (ücretsiz) oluşturup projeye bağla; `KV_REST_API_URL` ve `KV_REST_API_TOKEN` kendiliğinden eklenir, sonra yeniden yayınla. Uygulamada her cihazda aynı e-posta ve şifreyle giriş yapılır (sağ alttaki bulut); gerisi otomatik.

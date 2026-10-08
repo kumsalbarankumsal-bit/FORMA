@@ -9,6 +9,10 @@ const cihaz = LS("forma:cihaz") || (LS("forma:cihaz", Math.random().toString(36)
 const yerelT = () => Number(LS("forma:senkronT")) || 0;
 export const durum = { ad: "kapali", zaman: null, dinle: new Set(), yeniVar: false };
 const bildir = (ad, ek = {}) => { Object.assign(durum, { ad, ...ek }); durum.dinle.forEach((f) => f({ ...durum })); };
+/* e-posta + şifre → değişmez hesap anahtarı (SHA-256); şifre hiçbir yere gönderilmez */
+export async function hesapAnahtari(ep, sf) { const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode("forma|" + ep.trim().toLowerCase() + "|" + sf));
+  return Array.from(new Uint8Array(b), (x) => x.toString(16).padStart(2, "0")).join("").slice(0, 40); }
+export async function uzakT() { const { t } = await api(`?k=${encodeURIComponent(kodAl())}&meta=1`); return t || 0; }
 export const yeniKod = () => { const a = new Uint8Array(12); crypto.getRandomValues(a); return Array.from(a, (b) => "abcdefghjkmnpqrstuvwxyz23456789"[b % 31]).join("").replace(/(.{4})(?=.)/g, "$1-"); };
 async function api(yol, ayar) { const r = await fetch("/api/sync" + yol, ayar); const j = await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(j.hata || r.status); e.kod = r.status; e.j = j; throw e; } return j; }
 let zaman = null, bekleyen = false;
