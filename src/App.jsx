@@ -5,6 +5,7 @@ import { ModGecis, ModAnahtar, MOD_CSS } from "./ib/gecis.jsx";
 import { FORMA73_CSS, DiplomaKarti } from "./ib/forma73.jsx";
 import { ibYaziYukle } from "./ib/stil.js";
 import { ibAl } from "./ib/motor.js";
+import { ElleSeans, ELLE_CSS } from "./ib/elle.jsx";
 
 /* ══════════════════════════════════════════════════════════════
    FORMA — TEKNİK DİREKTÖR EDİSYONU · v7 "Kulüp"
@@ -12,7 +13,7 @@ import { ibAl } from "./ib/motor.js";
    forma:save:v2 YALNIZCA OKUNUR — asla yazılmaz, asla silinmez.
    ══════════════════════════════════════════════════════════════ */
 
-const SURUM = "v73 · Diploma";
+const SURUM = "v73.1 · Diploma";
 const YAPIM = "2026-09-01";
 const YAPIM_ID = "TD-73-1110";
 const YAPIM_NO = 73;                       /* her sürümde artar — eski build tespiti için */
@@ -12507,6 +12508,12 @@ const CIP_S = { display: "inline-flex", alignItems: "center", gap: 6, padding: "
    Uyku penceresinde seans kaydedilebilir ama hiçbir bonus işlemez.
    ══════════════════════════════════════════════════════════════════════ */
 const ODAK_HAT = new Set();
+/* v73.1 · elle çalışma kaydı için yardımcılar */
+const elleYardim = { SEANS_TUR, gecSaatMi, ritimAl, ses: (n) => Ses.cal(n),
+  konuUygula: (y, id, tarih) => { const kk = (y.konular || []).find((x) => x.id === id); if (!kk) return y;
+    const gecen = kk.sonDokunma ? gunFark(tarih, kk.sonDokunma) : null;
+    if (kk.kademe === "yok" || (kk.kademe === "islendi" && gecen != null && gecen >= 1)) return konuIlerlet(y, kk.id, tarih);
+    return { ...y, konular: y.konular.map((x) => (x.id === kk.id ? { ...x, sonDokunma: tarih } : x)) }; } };
 const odakAc = (ayar) => ODAK_HAT.forEach((f) => { try { f(ayar || {}); } catch (e) {} });
 const ODAK_TUR = [
   ["hucumHareketleri", "Yeni konu", "kitap"], ["bitiricilik", "Soru çözümü", "hedef"], ["duranTop", "Tekrar · ezber", "yenile"],
@@ -16155,7 +16162,7 @@ function LigHud({ od, git }) {
       ...(bolge === "dusme" ? { borderTop: `6px solid ${AR.kirmizi}` } : { borderBottom: `6px solid ${bolge === "terfi" ? AR.yesil : AR.lo}` }) }} />
   </HudDugme>;
 }
-function ArenaUst({ d, od, sekme, altSekme, git, genis, ileri, paletAc, geriAl, geriSayi, menuAc, modDegis }) {
+function ArenaUst({ d, od, sekme, altSekme, git, genis, ileri, paletAc, geriAl, geriSayi, menuAc, modDegis, elleAc }) {
   const gid = navGrupBul(sekme, altSekme);
   const grup = FM_NAV.find((g) => g.id === gid) || null;
   if (grup) SON_ALT[grup.id] = { s: sekme, a: altSekme || undefined };
@@ -16200,6 +16207,7 @@ function ArenaUst({ d, od, sekme, altSekme, git, genis, ileri, paletAc, geriAl, 
             <span style={{ fontFamily: FA, fontWeight: 800, fontSize: 13, color: "#fff", letterSpacing: "0.04em", lineHeight: 1 }}>SV {od.sv.seviye} · <span style={{ color: AR.aqua }}>{binlik(od.sv.icinde)}</span></span>
             <ArCubuk oran={od.sv.oran} yukseklik={4} style={{ width: "100%" }} /></span></button>}
       </div>}
+      {elleAc && <button type="button" className="el-dugme ar-btn" onClick={elleAc} title="Çalıştığımı yaz (kısayol: Ç)" aria-label="Çalıştığımı yaz"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>{genis ? "Çalıştım" : null}</button>}
       {modDegis && (genis ? <ModAnahtar mod="forma" degis={modDegis} />
         : <button type="button" className="ar-btn" aria-label="IB moduna geç" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); modDegis("ib", { x: r.left + r.width / 2, y: r.top + r.height / 2 }); }}
           style={{ border: "none", borderRadius: 10, minHeight: 38, padding: "0 11px", fontWeight: 900, fontSize: 13, background: "linear-gradient(135deg, #6FB1FF, #2F6FD0)", color: "#04122B" }}>IB</button>)}
@@ -16428,6 +16436,7 @@ export default function App() {
   /* v73 · iki mod: FORMA (arena) ve IB (diploma panosu). Seçim cihaz başına hatırlanır; kayıt ortaktır. */
   const [mod, setMod] = useState(() => { try { return window.localStorage.getItem("forma:mod") === "ib" ? "ib" : "forma"; } catch (e) { return "forma"; } });
   const [gecis, setGecis] = useState(null);
+  const [elle, setElle] = useState(null);
   const modRef = useRef(mod); modRef.current = mod;
   const gecisRef = useRef(null); gecisRef.current = gecis;
   const ibApi = useRef({}).current;
@@ -16436,7 +16445,7 @@ export default function App() {
     try { Ses.cal(h === "ib" ? "yukselme" : "gecis"); } catch (e) {} try { navigator.vibrate && navigator.vibrate(12); } catch (e) {} setGecis({ hedef: h, kaynak: kaynak || null, k: Date.now() }); }, []);
   useEffect(() => { ibYaziYukle(); }, []);
   useEffect(() => { const f = (e) => { const t = e.target && e.target.tagName; if (e.ctrlKey || e.metaKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(t || "") || (e.target && e.target.isContentEditable)) return;
-    if (e.key === "m" || e.key === "M") { e.preventDefault(); modDegis(); } }; window.addEventListener("keydown", f); return () => window.removeEventListener("keydown", f); }, [modDegis]);
+    if (e.key === "m" || e.key === "M") { e.preventDefault(); modDegis(); } else if (e.key === "ç" || e.key === "Ç" || e.key === "c" || e.key === "C") { e.preventDefault(); setElle({}); } }; window.addEventListener("keydown", f); return () => window.removeEventListener("keydown", f); }, [modDegis]);
   useEffect(() => { eskiDagitimiTemizle().then((r) => { if (r.temiz) setTemizlik(r); }); }, []);
   useEffect(() => { Depo.yapimKontrol().then(setYapim); }, []);
   useEffect(() => { if (d) Ses.ayarla(d.ayarlar.ses !== false, d.ayarlar.sesSeviye); }, [d && d.ayarlar.ses, d && d.ayarlar.sesSeviye]);
@@ -16551,7 +16560,7 @@ export default function App() {
   const macFx = d.sezon.fikstur.find((f) => f.tarih === bugun && !f.ertelendi);
   const git = (id, alt) => { Ses.cal("gecis"); setSekme(id); setAltSekme(alt || null); window.scrollTo(0, 0); };
   try { ibApi.sa = seansAnaliz(d); ibApi.gruplar = dersGruplari(d); ibApi.kh = khAgac(d, bugun); } catch (e) { ibApi.sa = ibApi.sa || { gun: {} }; ibApi.gruplar = ibApi.gruplar || {}; ibApi.kh = ibApi.kh || { dersler: [] }; }
-  ibApi.uyku = d.uyku; ibApi.ad = d.ayarlar && d.ayarlar.adSoyad && d.ayarlar.adSoyad !== "Teknik Direktör" ? d.ayarlar.adSoyad : ""; ibApi.odakAc = odakAc; ibApi.ses = (n) => Ses.cal(n); ibApi.formaGit = (s, a) => { modYaz("forma"); git(s, a); };
+  ibApi.uyku = d.uyku; ibApi.ad = d.ayarlar && d.ayarlar.adSoyad && d.ayarlar.adSoyad !== "Teknik Direktör" ? d.ayarlar.adSoyad : ""; ibApi.odakAc = odakAc; ibApi.elleAc = (a) => setElle(a || {}); ibApi.ses = (n) => Ses.cal(n); ibApi.formaGit = (s, a) => { modYaz("forma"); git(s, a); };
   const gecisAlt = gecis ? (gecis.hedef === "ib" ? (() => { try { const ib = ibAl(d); const g = Math.max(0, gunFark(ib.oturum.ilkSinav, bugun)); return `${ib.oturum.ad} · ilk sınava ${g} gün`; } catch (e) { return "Kasım 2027"; } })() : (d.kulup && d.kulup.ad ? `${d.kulup.ad} · sahaya dönüş` : "Sahaya dönüş")) : "";
   const p = { d, kaydet, bugun, simdi, kilitli, macFx, depoOk, git, genis, genisXL, orta, dar, sutun, w, h, yatay, kayit,
     ibKart: <Sinir><DiplomaKarti d={d} bugun={bugun} api={ibApi} modDegis={modDegis} /></Sinir> };
@@ -16609,7 +16618,8 @@ export default function App() {
     git(fx && fx.tarih === bugun ? "mac" : kilitli ? "kadro" : "bugun"); };
   return (
     <div style={{ ...T.kok, zoom: d.ayarlar.olcek || 1 }} className={`pes-kok ar-kok gq-${grafikAl(d)}`} data-arena-kok="1">
-      <style>{FORMA73_CSS + MOD_CSS}</style><Stil /><ArenaStil vurgu={vurguAl(d)} /><ArenaStil2 /><FxKok d={d} />
+      <style>{FORMA73_CSS + MOD_CSS + ELLE_CSS}</style>
+      {elle && <ElleSeans d={d} bugun={bugun} on={elle} kaydet={kaydet} kapat={() => setElle(null)} yardim={elleYardim} />}<Stil /><ArenaStil vurgu={vurguAl(d)} /><ArenaStil2 /><FxKok d={d} />
       {gecis && <ModGecis key={gecis.k} hedef={gecis.hedef} kaynak={gecis.kaynak} altYazi={gecisAlt} ortada={() => modYaz(gecis.hedef)} bitti={() => setGecis(null)} />}
       {mod === "ib" && <Sinir><IBDashboard d={d} kaydet={kaydet} bugun={bugun} api={ibApi} mod={mod} modDegis={modDegis} /></Sinir>}
       {mod !== "ib" && <><Arkaplan d={d} bugun={bugun} simdi={simdi} genis={genis} seviye={GRAFIK[grafikAl(d)].arkaplan} /><Serit /><Doku /><span className="f73-kaydir" aria-hidden="true" /></>}
@@ -16618,7 +16628,7 @@ export default function App() {
         {genis && <Sinir><ArenaRay d={d} od={od} sekme={sekme} altSekme={altSekme} git={git} /></Sinir>}
         <div style={{ paddingLeft: genis ? RAY_W : 0 }}>
         <Sinir><ArenaUst d={d} od={od} sekme={sekme} altSekme={altSekme} git={git} genis={genis} ileri={ileri}
-          menuAc={() => setMenuAcik(true)} paletAc={() => setPaletAcik(true)} geriAl={geriAl} geriSayi={geriSayi} modDegis={modDegis} /></Sinir>
+          menuAc={() => setMenuAcik(true)} paletAc={() => setPaletAcik(true)} geriAl={geriAl} geriSayi={geriSayi} modDegis={modDegis} elleAc={() => setElle({})} /></Sinir>
         <div style={{ position: "relative", display: "flex", minHeight: "calc(100vh - 60px)", maxWidth: 1720, margin: "0 auto", width: "100%" }}>
           {false && <aside style={{ width: rayGenislik, flex: `0 0 ${rayGenislik}px`, borderRight: `1px solid ${P.cizgi}`,
             background: "linear-gradient(180deg, rgba(44,36,68,0.72) 0%, rgba(24,20,38,0.86) 100%)",

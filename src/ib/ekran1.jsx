@@ -130,7 +130,7 @@ function DersDetay({ x, H, ib, yaz, bugun, api, git, ac, tost }) {
   return <div className="ib-ekran ib-izg" style={{ "--dr": x.renk }}>
     <div className="ib-sira" style={{ justifyContent: "space-between" }}>
       <button type="button" className="ib-dugme ib-dugme-ikincil" onClick={() => git("dersler")}><Ik ad="sol" boy={16} />Bütün dersler</button>
-      <span className="ib-sira">{pid && <button type="button" className="ib-dugme ib-dugme-ikincil" onClick={() => api.odakAc({ pid })}><Ik ad="oynat" boy={15} dolu />Odak başlat</button>}
+      <span className="ib-sira">{pid && api.elleAc && <button type="button" className="ib-dugme ib-dugme-ikincil" onClick={() => api.elleAc({ pid })}><Ik ad="saat" boy={15} />Çalıştığımı yaz</button>}{pid && <button type="button" className="ib-dugme ib-dugme-ikincil" onClick={() => api.odakAc({ pid })}><Ik ad="oynat" boy={15} dolu />Odak başlat</button>}
         <button type="button" className="ib-dugme" onClick={() => ac({ tur: "olcum", on: { did: x.id } })}><Ik ad="arti" boy={16} />Ölçüm ekle</button></span>
     </div>
     <div className="ib-g2">

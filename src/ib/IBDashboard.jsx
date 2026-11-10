@@ -73,6 +73,7 @@ export default function IBDashboard({ d, kaydet, bugun, api, mod, modDegis }) {
     window.addEventListener("keydown", f); return () => window.removeEventListener("keydown", f); }, [git, pen, yaz]);
   useEffect(() => { if (!ib.gorulen.kurulum) setPen({ tur: "kurulum" }); }, []);
   const ac = useCallback((p) => { setHizli(false); setPen(p); }, []);
+  const formaPidAl = (did) => ((api.gruplar || {})[DERSLER[did] ? DERSLER[did].forma : did] || [])[0] || "";
   const E = EKRAN.find((x) => x.id === ekran) || EKRAN[0];
   const rozet = { takvim: H.takvim.yedi.length + H.takvim.geciken.length || null, ia: H.odevler.filter((o) => !o.bitti && o.kalan != null && o.kalan <= 14).length || null, zihin: H.zihin.bugun ? null : "•" };
   const ortak = { H, ib, yaz, bugun, api, git, ac, arg, tost };
@@ -101,6 +102,7 @@ export default function IBDashboard({ d, kaydet, bugun, api, mod, modDegis }) {
             <div className="ib-sira ib-ust-sag" style={{ flexWrap: "nowrap" }}>
               <span className="ib-ekle-kap"><button type="button" className="ib-dugme ib-ekle" aria-label="Ekle" aria-expanded={hizli} aria-haspopup="menu" onClick={() => setHizli(!hizli)}><Ik ad="arti" boy={17} kalin={2.4} /><span>Ekle</span></button>
                 {hizli && <><span className="ib-ekle-perde" onClick={() => setHizli(false)} /><div className="ib-ekle-menu" role="menu">
+                  <button type="button" role="menuitem" className="ib-hizli-oge" onClick={() => { setHizli(false); api.elleAc && api.elleAc(ekran === "dersler" && arg && arg.did ? { pid: formaPidAl(arg.did) } : {}); }}><Ik ad="saat" boy={18} />Çalışma süresi<kbd>Ç</kbd></button>
                   <button type="button" role="menuitem" className="ib-hizli-oge" onClick={() => ac({ tur: "olcum", on: ekran === "dersler" && arg && arg.did ? { did: arg.did } : null })}><Ik ad="olcum" boy={18} />Ölçüm<kbd>N</kbd></button>
                   <button type="button" role="menuitem" className="ib-hizli-oge" style={{ animationDelay: "40ms" }} onClick={() => ac({ tur: "takvim" })}><Ik ad="takvim" boy={18} />Tarih</button>
                   <button type="button" role="menuitem" className="ib-hizli-oge" style={{ animationDelay: "80ms" }} onClick={() => ac({ tur: "cas" })}><Ik ad="yonca" boy={18} />CAS deneyimi</button></div></>}</span>
