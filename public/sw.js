@@ -1,6 +1,6 @@
 /* FORMA servis çalışanı: uygulama kabuğunu önbelleğe alır, internetsiz de açılır.
    Sayfa (HTML) her zaman önce ağdan istenir, böylece yeni sürüm hemen gelir. */
-const KAP = "forma-v72";
+const KAP = "forma-v73";
 self.addEventListener("install", (e) => { e.waitUntil(caches.open(KAP).then((c) => c.addAll(["./", "./index.html", "./manifest.webmanifest"])).then(() => self.skipWaiting())); });
 self.addEventListener("activate", (e) => { e.waitUntil(caches.keys().then((l) => Promise.all(l.filter((k) => k !== KAP).map((k) => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", (e) => {

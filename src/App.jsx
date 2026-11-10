@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ReferenceLine } from "recharts";
+import IBDashboard from "./ib/IBDashboard.jsx";
+import { ModGecis, ModAnahtar, MOD_CSS } from "./ib/gecis.jsx";
+import { FORMA73_CSS, DiplomaKarti } from "./ib/forma73.jsx";
+import { ibYaziYukle } from "./ib/stil.js";
+import { ibAl } from "./ib/motor.js";
 
 /* ══════════════════════════════════════════════════════════════
    FORMA — TEKNİK DİREKTÖR EDİSYONU · v7 "Kulüp"
@@ -7,10 +12,10 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
    forma:save:v2 YALNIZCA OKUNUR — asla yazılmaz, asla silinmez.
    ══════════════════════════════════════════════════════════════ */
 
-const SURUM = "v72 · Arena 3.0";
+const SURUM = "v73 · Diploma";
 const YAPIM = "2026-09-01";
-const YAPIM_ID = "TD-72-0927";
-const YAPIM_NO = 72;                       /* her sürümde artar — eski build tespiti için */
+const YAPIM_ID = "TD-73-1110";
+const YAPIM_NO = 73;                       /* her sürümde artar — eski build tespiti için */
 const KEY_YAPIM = "forma:td:enYuksekYapim";
 const DOSYA_AD = "Baran Şimşek çalışma v1.jsx";   /* her sürüm ayrı dosya adı = ayrı bağlantı */
 
@@ -12977,6 +12982,7 @@ function Lobi(p) {
   const Baslik = ({ ust, sag }) => <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
     <span style={{ fontFamily: FN, fontWeight: 800, fontSize: 10.5, letterSpacing: "0.16em", color: AR.mid, textTransform: "uppercase" }}>{ust}</span>{sag}</div>;
   return <div className="ar-kademe" style={{ display: "grid", gap: genis ? 16 : 12 }}>
+    {p.ibKart || null}
     {!o.hosgeldin72 && v72Paket.length > 0 && <div className="ar-cam ar-parilti lb72-hos" style={{ borderRadius: 22, padding: genis ? "20px 24px" : 16, display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap", position: "relative", overflow: "hidden",
       background: "linear-gradient(110deg, rgba(57,229,140,0.24), rgba(124,92,255,0.28) 40%, rgba(255,90,170,0.18) 70%, rgba(59,227,255,0.16)), rgba(10,12,22,0.94)" }}>
       <span className="s7-et-isik" aria-hidden style={{ "--r": "#B3A2FF" }} />
@@ -16149,7 +16155,7 @@ function LigHud({ od, git }) {
       ...(bolge === "dusme" ? { borderTop: `6px solid ${AR.kirmizi}` } : { borderBottom: `6px solid ${bolge === "terfi" ? AR.yesil : AR.lo}` }) }} />
   </HudDugme>;
 }
-function ArenaUst({ d, od, sekme, altSekme, git, genis, ileri, paletAc, geriAl, geriSayi, menuAc }) {
+function ArenaUst({ d, od, sekme, altSekme, git, genis, ileri, paletAc, geriAl, geriSayi, menuAc, modDegis }) {
   const gid = navGrupBul(sekme, altSekme);
   const grup = FM_NAV.find((g) => g.id === gid) || null;
   if (grup) SON_ALT[grup.id] = { s: sekme, a: altSekme || undefined };
@@ -16194,6 +16200,9 @@ function ArenaUst({ d, od, sekme, altSekme, git, genis, ileri, paletAc, geriAl, 
             <span style={{ fontFamily: FA, fontWeight: 800, fontSize: 13, color: "#fff", letterSpacing: "0.04em", lineHeight: 1 }}>SV {od.sv.seviye} · <span style={{ color: AR.aqua }}>{binlik(od.sv.icinde)}</span></span>
             <ArCubuk oran={od.sv.oran} yukseklik={4} style={{ width: "100%" }} /></span></button>}
       </div>}
+      {modDegis && (genis ? <ModAnahtar mod="forma" degis={modDegis} />
+        : <button type="button" className="ar-btn" aria-label="IB moduna geç" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); modDegis("ib", { x: r.left + r.width / 2, y: r.top + r.height / 2 }); }}
+          style={{ border: "none", borderRadius: 10, minHeight: 38, padding: "0 11px", fontWeight: 900, fontSize: 13, background: "linear-gradient(135deg, #6FB1FF, #2F6FD0)", color: "#04122B" }}>IB</button>)}
       <HudDugme onClick={paletAc} etiket="Ara · Ctrl+K"><Ikon ad="ara" boy={19} /></HudDugme>
       {geriSayi > 0 && <HudDugme onClick={geriAl} etiket="Geri al · Ctrl+Z" style={{ color: AR.altin }}><Ikon ad="geri" boy={19} /></HudDugme>}
       {!genis && <HudDugme onClick={menuAc} etiket="Menü"><Ikon ad="menu" boy={20} /></HudDugme>}
@@ -16416,6 +16425,18 @@ export default function App() {
   const [temizlik, setTemizlik] = useState(null);
   const [yapim, setYapim] = useState(null);
   const dRef = useRef(null), tRef = useRef(null);
+  /* v73 · iki mod: FORMA (arena) ve IB (diploma panosu). Seçim cihaz başına hatırlanır; kayıt ortaktır. */
+  const [mod, setMod] = useState(() => { try { return window.localStorage.getItem("forma:mod") === "ib" ? "ib" : "forma"; } catch (e) { return "forma"; } });
+  const [gecis, setGecis] = useState(null);
+  const modRef = useRef(mod); modRef.current = mod;
+  const gecisRef = useRef(null); gecisRef.current = gecis;
+  const ibApi = useRef({}).current;
+  const modYaz = useCallback((m) => { setMod(m); try { window.localStorage.setItem("forma:mod", m); } catch (e) {} try { window.scrollTo(0, 0); } catch (e) {} }, []);
+  const modDegis = useCallback((hedef, kaynak) => { if (gecisRef.current) return; const h = hedef || (modRef.current === "ib" ? "forma" : "ib"); if (h === modRef.current) return;
+    try { Ses.cal(h === "ib" ? "yukselme" : "gecis"); } catch (e) {} try { navigator.vibrate && navigator.vibrate(12); } catch (e) {} setGecis({ hedef: h, kaynak: kaynak || null, k: Date.now() }); }, []);
+  useEffect(() => { ibYaziYukle(); }, []);
+  useEffect(() => { const f = (e) => { const t = e.target && e.target.tagName; if (e.ctrlKey || e.metaKey || e.altKey || /INPUT|TEXTAREA|SELECT/.test(t || "") || (e.target && e.target.isContentEditable)) return;
+    if (e.key === "m" || e.key === "M") { e.preventDefault(); modDegis(); } }; window.addEventListener("keydown", f); return () => window.removeEventListener("keydown", f); }, [modDegis]);
   useEffect(() => { eskiDagitimiTemizle().then((r) => { if (r.temiz) setTemizlik(r); }); }, []);
   useEffect(() => { Depo.yapimKontrol().then(setYapim); }, []);
   useEffect(() => { if (d) Ses.ayarla(d.ayarlar.ses !== false, d.ayarlar.sesSeviye); }, [d && d.ayarlar.ses, d && d.ayarlar.sesSeviye]);
@@ -16529,10 +16550,14 @@ export default function App() {
   const kilitli = d.gunluk.sonIslenen === bugun;
   const macFx = d.sezon.fikstur.find((f) => f.tarih === bugun && !f.ertelendi);
   const git = (id, alt) => { Ses.cal("gecis"); setSekme(id); setAltSekme(alt || null); window.scrollTo(0, 0); };
-  const p = { d, kaydet, bugun, simdi, kilitli, macFx, depoOk, git, genis, genisXL, orta, dar, sutun, w, h, yatay, kayit };
+  try { ibApi.sa = seansAnaliz(d); ibApi.gruplar = dersGruplari(d); ibApi.kh = khAgac(d, bugun); } catch (e) { ibApi.sa = ibApi.sa || { gun: {} }; ibApi.gruplar = ibApi.gruplar || {}; ibApi.kh = ibApi.kh || { dersler: [] }; }
+  ibApi.uyku = d.uyku; ibApi.ad = d.ayarlar && d.ayarlar.adSoyad && d.ayarlar.adSoyad !== "Teknik Direktör" ? d.ayarlar.adSoyad : ""; ibApi.odakAc = odakAc; ibApi.ses = (n) => Ses.cal(n); ibApi.formaGit = (s, a) => { modYaz("forma"); git(s, a); };
+  const gecisAlt = gecis ? (gecis.hedef === "ib" ? (() => { try { const ib = ibAl(d); const g = Math.max(0, gunFark(ib.oturum.ilkSinav, bugun)); return `${ib.oturum.ad} · ilk sınava ${g} gün`; } catch (e) { return "Kasım 2027"; } })() : (d.kulup && d.kulup.ad ? `${d.kulup.ad} · sahaya dönüş` : "Sahaya dönüş")) : "";
+  const p = { d, kaydet, bugun, simdi, kilitli, macFx, depoOk, git, genis, genisXL, orta, dar, sutun, w, h, yatay, kayit,
+    ibKart: <Sinir><DiplomaKarti d={d} bugun={bugun} api={ibApi} modDegis={modDegis} /></Sinir> };
   const gorunum = d.donusBekleyen ? <KampEkrani d={d} kaydet={kaydet} bugun={bugun} />
     : d.devreBekleyen ? <CanliMac d={d} kaydet={kaydet} bugun={bugun} genis={genis} genisXL={genisXL} sutun={sutun} />
-    : <div key={sekme + (altSekme || "")} className="ar-ekran"><Sinir>
+    : <div key={sekme + (altSekme || "")} className="ar-ekran"><span className="f73-tarama" aria-hidden="true" /><Sinir>
         {sekme === "ana" && <Lobi {...p} />}
         {sekme === "bulten" && <AnaSayfa {...p} />}
         {sekme === "paket" && <PaketEkrani {...p} />}
@@ -16584,14 +16609,16 @@ export default function App() {
     git(fx && fx.tarih === bugun ? "mac" : kilitli ? "kadro" : "bugun"); };
   return (
     <div style={{ ...T.kok, zoom: d.ayarlar.olcek || 1 }} className={`pes-kok ar-kok gq-${grafikAl(d)}`} data-arena-kok="1">
-      <Stil /><ArenaStil vurgu={vurguAl(d)} /><ArenaStil2 /><FxKok d={d} />
-      <Arkaplan d={d} bugun={bugun} simdi={simdi} genis={genis} seviye={GRAFIK[grafikAl(d)].arkaplan} /><Serit /><Doku />
+      <style>{FORMA73_CSS + MOD_CSS}</style><Stil /><ArenaStil vurgu={vurguAl(d)} /><ArenaStil2 /><FxKok d={d} />
+      {gecis && <ModGecis key={gecis.k} hedef={gecis.hedef} kaynak={gecis.kaynak} altYazi={gecisAlt} ortada={() => modYaz(gecis.hedef)} bitti={() => setGecis(null)} />}
+      {mod === "ib" && <Sinir><IBDashboard d={d} kaydet={kaydet} bugun={bugun} api={ibApi} mod={mod} modDegis={modDegis} /></Sinir>}
+      {mod !== "ib" && <><Arkaplan d={d} bugun={bugun} simdi={simdi} genis={genis} seviye={GRAFIK[grafikAl(d)].arkaplan} /><Serit /><Doku /><span className="f73-kaydir" aria-hidden="true" /></>}
       <a href="#icerik" className="td-atla">İçeriğe atla</a>
-      <div ref={kokRef} style={{ position: "relative", zIndex: 3 }}>
+      <div ref={kokRef} style={{ position: "relative", zIndex: 3, display: mod === "ib" ? "none" : undefined }}>
         {genis && <Sinir><ArenaRay d={d} od={od} sekme={sekme} altSekme={altSekme} git={git} /></Sinir>}
         <div style={{ paddingLeft: genis ? RAY_W : 0 }}>
         <Sinir><ArenaUst d={d} od={od} sekme={sekme} altSekme={altSekme} git={git} genis={genis} ileri={ileri}
-          menuAc={() => setMenuAcik(true)} paletAc={() => setPaletAcik(true)} geriAl={geriAl} geriSayi={geriSayi} /></Sinir>
+          menuAc={() => setMenuAcik(true)} paletAc={() => setPaletAcik(true)} geriAl={geriAl} geriSayi={geriSayi} modDegis={modDegis} /></Sinir>
         <div style={{ position: "relative", display: "flex", minHeight: "calc(100vh - 60px)", maxWidth: 1720, margin: "0 auto", width: "100%" }}>
           {false && <aside style={{ width: rayGenislik, flex: `0 0 ${rayGenislik}px`, borderRight: `1px solid ${P.cizgi}`,
             background: "linear-gradient(180deg, rgba(44,36,68,0.72) 0%, rgba(24,20,38,0.86) 100%)",
@@ -16629,7 +16656,7 @@ export default function App() {
       </div>
       <Sinir><OdulKatmani d={d} od={od} git={git} /></Sinir>
       <Sinir><OdakKatmani d={d} kaydet={kaydet} bugun={bugun} git={git} genis={genis} /></Sinir>
-      <KomutPaleti d={d} bugun={bugun} git={git} kaydet={kaydet} acik={paletAcik}
+      <KomutPaleti d={d} bugun={bugun} git={(s, a) => { if (modRef.current === "ib") modYaz("forma"); git(s, a); }} kaydet={kaydet} acik={paletAcik}
         kapat={() => setPaletAcik(false)} ek={{ setSecilenDers }} />
       <MobilMenu acik={menuAcik} kapat={() => setMenuAcik(false)} sekme={sekme} altSekme={altSekme} git={git} d={d} bugun={bugun} />
 
